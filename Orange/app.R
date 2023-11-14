@@ -13,6 +13,9 @@ library(tidyverse)
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
+    sliderInput("id_slider", "Select an age range:", 
+                min = min(Orange$age), max = max(Orange$age), 
+                value = c(quantile(Orange$age, probs = c(0.25, 0.75)))),
     # Application title
     titlePanel("Orange Data"),
     
@@ -39,13 +42,22 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   
+  # observe(print(input$id_slider))
+  
+  orange_data <- reactive({
+    Orange %>%
+    filter(age >= input$id_slider[1],
+           age <= input$id_slider[2])
+  })
+  
   output$id_histogram <- renderPlot({
-    ggplot(Orange, aes(circumference)) +
-      geom_histogram()
+    orange_data() %>%  
+      ggplot(aes(circumference)) +
+        geom_histogram()
   })
   
   output$id_table <- renderTable({
-    Orange
+    orange_data()
   })
 
     # output$distPlot <- renderPlot({
