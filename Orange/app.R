@@ -13,14 +13,21 @@ library(tidyverse)
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
-    sliderInput("id_slider", "Select an age range:", 
-                min = min(Orange$age), max = max(Orange$age), 
-                value = c(quantile(Orange$age, probs = c(0.25, 0.75)))),
     # Application title
-    titlePanel("Orange Data"),
+    titlePanel("Orange Data App"),
+    h4("Use this app to explore content on oranges"),
+    sidebarLayout(
+      sidebarPanel(
+        sliderInput("id_slider", "Select an age range:", 
+                    min = min(Orange$age), max = max(Orange$age), 
+                    value = c(quantile(Orange$age, probs = c(0.4, 0.6))))
+      ),
+      mainPanel(
+        plotOutput("id_histogram"),
+        tableOutput("id_table")
+      )
+    )
     
-    plotOutput("id_histogram"),
-    tableOutput("id_table")
 
     # # Sidebar with a slider input for number of bins 
     # sidebarLayout(
