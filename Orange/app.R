@@ -20,8 +20,10 @@ ui <- fluidPage(
       sidebarPanel(
         sliderInput("id_slider", "Select an age range:", 
                     min = min(Orange$age), max = max(Orange$age), 
-                    value = c(quantile(Orange$age, probs = c(0.4, 0.6))))
-      ),
+                    value = c(quantile(Orange$age, probs = c(0.4, 0.6)))),
+        
+      sliderInput("bins", "Number of bins:", min = 1,max = 50,value = 30)
+                      ),
       mainPanel(
         plotOutput("id_histogram"),
         tableOutput("id_table")
@@ -60,7 +62,7 @@ server <- function(input, output) {
   output$id_histogram <- renderPlot({
     orange_data() %>%  
       ggplot(aes(circumference)) +
-        geom_histogram()
+        geom_histogram(bins=input$bins, fill='orange', color='black', alpha=0.7)
   })
   
   output$id_table <- renderTable({
