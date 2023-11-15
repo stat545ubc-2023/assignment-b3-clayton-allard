@@ -1,10 +1,8 @@
 #
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
+# Created by: Clayton Allard
+# 
+# Credit to Dean Attali's BC Liquor Store prices app. Many of the things
+# implemented here were inspired by looking at the source code for this app.
 #
 
 library(shiny)
@@ -18,67 +16,70 @@ ui <- fluidPage(
     h4("Use this app to explore content on oranges"),
     sidebarLayout(
       sidebarPanel(
-        sliderInput("id_slider", "Select an age range:", 
-                    min = min(Orange$age), max = max(Orange$age), 
-                    value = c(quantile(Orange$age, probs = c(0.4, 0.6)))),
+        selectInput("dropdown", "Select variable:", 
+                    choices=c('age', 'circumference'), selected = 'age'),
         
-      sliderInput("bins", "Number of bins:", min = 1,max = 50,value = 30)
+        sliderInput("id_slider", "Select a age range:", 
+                    min = min(Orange$age), max = max(Orange$age), 
+                    value = range(Orange$age)),
+        
+        sliderInput("bins", "Number of bins:", min = 1,max = 30,value = 10),
+      
+        checkboxInput("by_tree", "Check box to group by tree", FALSE),
                       ),
       mainPanel(
         plotOutput("id_histogram"),
-        tableOutput("id_table")
+        DT::dataTableOutput("id_table")
       )
     )
-    
-
-    # # Sidebar with a slider input for number of bins 
-    # sidebarLayout(
-    #     sidebarPanel(
-    #         sliderInput("bins",
-    #                     "Number of bins:",
-    #                     min = 1,
-    #                     max = 50,
-    #                     value = 30)
-    #     ),
-    # 
-    #     # Show a plot of the generated distribution
-    #     mainPanel(
-    #        plotOutput("distPlot")
-    #     )
-    # )
 )
 
 # Define server logic required to draw a histogram
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   # observe(print(input$id_slider))
   
   orange_data <- reactive({
+    Orange$Tree <- factor(Orange$Tree, levels=as.character(1:5))
     Orange %>%
-    filter(age >= input$id_slider[1],
-           age <= input$id_slider[2])
+    dplyr::filter(!!sym(input$dropdown) >= input$id_slider[1],
+           !!sym(input$dropdown) <= input$id_slider[2])
   })
   
+  dropdown_data <- reactive({
+    selected_var <- input$dropdown
+    
+    # Calculate default range based on the selected variable
+    range <- quantile(data[selected_var], 
+                      label = paste("Select a ", input$dropdown, " range:"),
+                      min = min(orange[input$dropdown]), 
+                      max = max(orange[input$dropdown]), 
+                      probs = range(orange[input$dropdown]))
+    
+    # Update the slider input
+    updateSliderInput(session, "id_slider", value = range)
+  })
+  
+  # plot histogram
   output$id_histogram <- renderPlot({
-    orange_data() %>%  
-      ggplot(aes(circumference)) +
-        geom_histogram(bins=input$bins, fill='orange', color='black', alpha=0.7)
+    # plot by specific tree
+    if(input$by_tree){
+      orange_data() %>%  
+        ggplot(aes_string(input$dropdown, fill='Tree')) +
+          geom_histogram(bins=input$bins, color='black', alpha=0.7)+
+          theme_classic(20)
+    } else {
+      # plot all as the same
+      orange_data() %>%  
+        ggplot(aes_string(input$dropdown)) +
+          geom_histogram(bins=input$bins, fill='orange', color='black', alpha=0.7)+
+          theme_classic(20)
+    }
   })
   
-  output$id_table <- renderTable({
+  output$id_table <- DT::renderDataTable({
     orange_data()
   })
-
-    # output$distPlot <- renderPlot({
-    #     # generate bins based on input$bins from ui.R
-    #     x    <- faithful[, 2]
-    #     bins <- seq(min(x), max(x), length.out = input$bins + 1)
-    # 
-    #     # draw the histogram with the specified number of bins
-    #     hist(x, breaks = bins, col = 'darkgray', border = 'white',
-    #          xlab = 'Waiting time to next eruption (in mins)',
-    #          main = 'Histogram of waiting times')
-    # })
 }
 
 # Run the application 
