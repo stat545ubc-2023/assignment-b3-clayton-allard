@@ -46,18 +46,14 @@ server <- function(input, output, session) {
            !!sym(input$dropdown) <= input$id_slider[2])
   })
   
-  dropdown_data <- reactive({
-    selected_var <- input$dropdown
+  observe({
     
-    # Calculate default range based on the selected variable
-    range <- quantile(data[selected_var], 
+    # Update the slider input after selecting dropdown
+    updateSliderInput(session, "id_slider", 
+                      value = range(Orange[input$dropdown]),
                       label = paste("Select a ", input$dropdown, " range:"),
-                      min = min(orange[input$dropdown]), 
-                      max = max(orange[input$dropdown]), 
-                      probs = range(orange[input$dropdown]))
-    
-    # Update the slider input
-    updateSliderInput(session, "id_slider", value = range)
+                      min = min(Orange[input$dropdown]),
+                      max = max(Orange[input$dropdown]))
   })
   
   # plot histogram
@@ -72,7 +68,8 @@ server <- function(input, output, session) {
       # plot all as the same
       orange_data() %>%  
         ggplot(aes_string(input$dropdown)) +
-          geom_histogram(bins=input$bins, fill='orange', color='black', alpha=0.7)+
+          geom_histogram(bins=input$bins, fill='orange', color='black', 
+                         alpha=0.7)+
           theme_classic(20)
     }
   })
