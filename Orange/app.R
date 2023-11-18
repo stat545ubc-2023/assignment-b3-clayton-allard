@@ -5,6 +5,9 @@
 # implemented here were inspired by looking at the source code for this app.
 #
 
+library(conflicted)
+conflict_prefer('filter', winner = 'dplyr')
+conflict_prefer('lag', winner = 'dplyr')
 library(shiny)
 library(tidyverse)
 
@@ -16,24 +19,29 @@ ui <- fluidPage(
     h4("Use this app to explore content on oranges"),
     sidebarLayout(
       sidebarPanel(
+        # FEATURE 1: allow the user to choose variable to plot by
         # select variable to plot
         selectInput("dropdown", "Select variable:", 
                     choices=c('age', 'circumference'), selected = 'age'),
         
+        # FEATURE 2: allow user to select a range for the variable they chose.
         # select range of variable to visualize
         sliderInput("id_slider", "Select a age range:", 
                     min = min(Orange$age), max = max(Orange$age), 
                     value = range(Orange$age)),
         
+        # FEATURE 3: allow user to select the number of bins.
         # select number of bins for histogram
         sliderInput("bins", "Number of bins:", min = 1,max = 30,value = 10),
       
+        # FEATURE 4: allow user to select whether to group by tree.
         # choose whether to group by tree type
         checkboxInput("by_tree", "Check box to group by tree", FALSE),
                       ),
       mainPanel(
         # output a histogram and a table
         plotOutput("id_histogram"),
+        # FEATURE 5: add an interactive table sorting by any variable.
         DT::dataTableOutput("id_table")
       )
     )
@@ -66,13 +74,13 @@ server <- function(input, output, session) {
     # plot by specific tree
     if(input$by_tree){
       orange_data() %>%  
-        ggplot(aes_string(input$dropdown, fill='Tree')) +
+        ggplot(aes(x = !!sym(input$dropdown), fill = Tree)) +
           geom_histogram(bins=input$bins, color='black', alpha=0.7)+
           theme_classic(20)
     } else {
       # plot all as the same
       orange_data() %>%  
-        ggplot(aes_string(input$dropdown)) +
+        ggplot(aes(x = !!sym(input$dropdown))) +
           geom_histogram(bins=input$bins, fill='orange', color='black', 
                          alpha=0.7)+
           theme_classic(20)
