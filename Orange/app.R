@@ -16,18 +16,23 @@ ui <- fluidPage(
     h4("Use this app to explore content on oranges"),
     sidebarLayout(
       sidebarPanel(
+        # select variable to plot
         selectInput("dropdown", "Select variable:", 
                     choices=c('age', 'circumference'), selected = 'age'),
         
+        # select range of variable to visualize
         sliderInput("id_slider", "Select a age range:", 
                     min = min(Orange$age), max = max(Orange$age), 
                     value = range(Orange$age)),
         
+        # select number of bins for histogram
         sliderInput("bins", "Number of bins:", min = 1,max = 30,value = 10),
       
+        # choose whether to group by tree type
         checkboxInput("by_tree", "Check box to group by tree", FALSE),
                       ),
       mainPanel(
+        # output a histogram and a table
         plotOutput("id_histogram"),
         DT::dataTableOutput("id_table")
       )
@@ -74,6 +79,7 @@ server <- function(input, output, session) {
     }
   })
   
+  # create interactive table
   output$id_table <- DT::renderDataTable({
     orange_data()
   })
