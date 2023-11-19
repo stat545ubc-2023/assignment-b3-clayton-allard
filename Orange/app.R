@@ -17,12 +17,15 @@ library(purrr)
 has_numeric_variable <- function(dataset){
   # only include if it is loadable
   tryCatch({
-      data = get(dataset)
-      return(any(sapply(data.frame(data), is.numeric)))
-    },
-    error = function(e) {
-      return(FALSE)
-    }
+      data <- get(dataset)
+      if (!('data.frame' %in% class(data))){
+        return(FALSE)
+      }
+      return(any(sapply(data, is.numeric)))
+  },
+  error = function(e) {
+    return(FALSE)
+  }
   )
 }
 
@@ -40,7 +43,7 @@ get_typeof_vars <- function(dataset, type='numeric'){
       return(chars)
     return(chars[sapply(chars, function(col) {
       # print(length(unique(dataset[[col]])))
-      length(unique(col)) <= 10})]) 
+      length(unique(dataset[[col]])) <= 10})]) 
   }
   return(character(0))
 }
@@ -51,21 +54,18 @@ data_names <- keep(data_names, has_numeric_variable)
 
 # so that we can initialize the dataframe
 random_name <- sample(data_names, 1)
-random_dataset <- data.frame(get(random_name))
+random_dataset <- get(random_name)
 num_vars <-  get_typeof_vars(random_dataset)
 sample_num <-  sample(num_vars, 1)
 char_vars <- get_typeof_vars(random_dataset, 'character')
 numeric_col <- as.numeric(random_dataset[[sample_num]])
-
-print(random_name)
-print(sample_num)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
     # Application title
     titlePanel("R Dataset App"),
-    h4("Use this app to explore content on all base R datasets"),
+    h4("Use this app to explore content on all base R dataframes"),
     sidebarLayout(
       sidebarPanel(
         # NEW FEATURE 1: allow the user to choose dataset (from base R)
@@ -107,8 +107,8 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
 
-    dataset <- reactive({
-      data.frame(get(input$dataset))
+  dataset <- reactive({
+      get(input$dataset)
   })
   
   filtered_data <- reactive({
@@ -123,11 +123,16 @@ server <- function(input, output, session) {
     numeric_col <- as.numeric(data[[input$dropdown]])
     num_vars <- get_typeof_vars(data)
     
+    selected_val <- ifelse(!(input$dropdown %in% num_vars), 
+                           sample(num_vars, 1),
+                           input$dropdown)
+    print(selected_val)
+    
     # Update variable options once a dataset is chosen
     updateSelectInput(session, "dropdown",
                       label = paste("Select variable:"),
                       choices = num_vars,
-                      selected = sample(num_vars, 1)
+                      selected = selected_val
                       )
 
     # Update the slider input after selecting dropdown
@@ -143,6 +148,7 @@ server <- function(input, output, session) {
                       choices = c('', get_typeof_vars(data, 'character')))
   })
   
+  tryCatch({
   # plot histogram
   output$id_histogram <- renderPlot({
     if(input$group_by == ''){
@@ -155,7 +161,7 @@ server <- function(input, output, session) {
     } else {
       # plot by group
       filtered_data() %>%  
-        ggplot(aes(x = !!sym(input$dropdown), fill = input$group_by)) +
+        ggplot(aes(x = !!sym(input$dropdown), fill = !!sym(input$group_by))) +
           geom_histogram(bins=input$bins, color='black', alpha=0.7)+
           theme_classic(20) +
           labs(fill = input$group_by)
@@ -166,6 +172,12 @@ server <- function(input, output, session) {
   output$id_table <- DT::renderDataTable({
     dataset()
   })
+  }, error = function(e){
+    output$id_histogram <- renderText({
+      paste('Loading...')
+  })
+    
+})
 }
 
 # Run the application 
