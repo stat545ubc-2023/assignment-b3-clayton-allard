@@ -17,24 +17,33 @@ library(purrr)
 has_numeric_variable <- function(dataset){
   # only include if it is loadable
   tryCatch({
+      data = get(dataset)
       # True if at least one column is numeric
-      any(sapply(dataset, is.numeric))
-    }, 
+      any(sapply(data.frame(data), is.numeric))
+    },
     error = function(e) {
-      FALSE
+      return(FALSE)
     }
   )
 }
 
 # get all numeric/character variables that have less than 10 unique values
 get_typeof_vars <- function(dataset, type='numeric'){
-  vars <-  names(dataset)
-  type_vars <-  vars[sapply(dataset, function(col) {class(col) == type})]
-  # to not overload the plot
-  if (type == 'character'){
-    type_vars <-  vars[sapply(dataset, function(col) {unique(dataset[col]) <= 10})]
+  vars <- names(dataset)
+  if (type == 'numeric'){
+    return(vars[sapply(dataset, function(col) {is.numeric(col)})])
   }
-  return(type_vars)
+  # to not overload the plot
+  else if (type == 'character'){
+    chars <- vars[sapply(dataset, function(col) {
+      is.character(col) || is.factor(col)})]
+    if (length(chars) == 0)
+      return(chars)
+    return(chars[sapply(chars, function(col) {
+      # print(length(unique(dataset[[col]])))
+      length(unique(col)) <= 10})]) 
+  }
+  return(character(0))
 }
 
 # get a list of all base R data sets that have at least one numeric variable
@@ -43,10 +52,10 @@ data_names <- keep(data_names, has_numeric_variable)
 
 # so that we can initialize the dataframe
 random_name <- sample(data_names, 1)
-random_dataset <- get(random_name)
+random_dataset <- data.frame(get(random_name))
 num_vars <-  get_typeof_vars(random_dataset)
 sample_num <-  sample(num_vars, 1)
-char_vars <-  get_typeof_vars(random_dataset)
+char_vars <- get_typeof_vars(random_dataset, 'character')
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
