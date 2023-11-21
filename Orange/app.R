@@ -1,26 +1,44 @@
-#
-# Created by: Clayton Allard
-# 
-# Credit to Dean Attali's BC Liquor Store prices app. Many of the things
-# implemented here were inspired by looking at the source code for this app.
-#
+#' @title Base R dataframe app
+#' 
+#' @author Clayton Allard
+#' 
+#' @description
+#' This is a shiny app to show a histogram on a given feature of any base R 
+#' dataframe. Additionally, this app allows the user the ability to group by 
+#' another variable and to download a dataframe as a csv file.
+#' 
+#' Credit to Dean Attali's BC Liquor Store prices app. Many of the things
+#' implemented here were inspired by looking at the source code for this app.
+#'
 
+# to ensure a clean app run
 library(conflicted)
 conflict_prefer('filter', winner = 'dplyr')
 conflict_prefer('lag', winner = 'dplyr')
+
 library(shiny)
 library(tidyverse)
 library(datasets)
 library(purrr)
 
-# used to subset datasets that have at least one numeric column
+#' @title Determines whether a data set belongs on the shiny app.
+#'
+#' @description Must be a dataframe and it must have at least one numeric 
+#' variable. Otherwise this will return FALSE and not be an option on the shiny app.
+#'
+#' @param dataset dataset name from base R.
+#' @return TRUE if the dataset is a dataframe with at least one numeric 
+#' variable. FALSE otherwise.
 has_numeric_variable <- function(dataset){
   # only include if it is loadable
   tryCatch({
       data <- get(dataset)
+      # want to filter out non-dataframes since they give many issues
       if (!('data.frame' %in% class(data))){
         return(FALSE)
       }
+      # the sapply enacts the is.numeric function for each element of data
+      # want at least one numeric variable
       return(any(sapply(data, is.numeric)))
   },
   error = function(e) {
@@ -29,13 +47,14 @@ has_numeric_variable <- function(dataset){
   )
 }
 
-# get all numeric/character variables that have less than 10 unique values
+# get all numeric variables
+# or character variables that have less than 10 unique values
 get_typeof_vars <- function(dataset, type='numeric'){
   vars <- names(dataset)
   if (type == 'numeric'){
     return(vars[sapply(dataset, function(col) {is.numeric(col)})])
   }
-  # to not overload the plot
+  # if we want character type, it can be in the form of a character and a factor
   else if (type == 'character'){
     chars <- vars[sapply(dataset, function(col) {
       is.character(col) || is.factor(col)})]
@@ -52,7 +71,7 @@ get_typeof_vars <- function(dataset, type='numeric'){
 data_names <- data(package = 'datasets')$results[, "Item"]
 data_names <- keep(data_names, has_numeric_variable)
 
-# so that we can initialize the dataframe with random dataset and variable
+# so that we can initialize the app with random dataset and variable
 random_name <- sample(data_names, 1)
 random_dataset <- get(random_name)
 num_vars <-  get_typeof_vars(random_dataset)
@@ -101,41 +120,52 @@ ui <- fluidPage(
         # FEATURE 5: add an interactive table sorting by any variable.
         DT::dataTableOutput("id_table")
       )
-    
-    )
+    ),
+    # NEW FEATURE 3: allow user to download filtered data
+    downloadButton('download', 'Download Data')
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
 
+  # the data set
   dataset <- reactive({
       get(input$dataset)
   })
   
+  # filter the dataset by variable values
   filtered_data <- reactive({
     dataset() %>%
     dplyr::filter(!!sym(input$dropdown) >= input$id_slider[1],
            !!sym(input$dropdown) <= input$id_slider[2])
   })
   
+  # this is to prevent errors. When switching data sets, the selected variable
+  # doesn't change right away which causes errors. Using this as a check before
+  # plotting or making the table fixes this issue.
   can_plot <- reactive({    
     num_vars <- get_typeof_vars(dataset())
     char_vars <- get_typeof_vars(dataset(), 'character')
+    # Want to check if the currently selected variables belong in the dataset.
     input$dropdown %in% num_vars && 
       input$group_by %in% c('<no group>', char_vars)
   })
   
   observe({
-    data <-  dataset()
+    data <- dataset()
+    
+    # Variables to use for the updaters
     
     numeric_col <- as.numeric(data[[input$dropdown]])
     num_vars <- get_typeof_vars(data)
     char_vars <- get_typeof_vars(dataset(), 'character')
     
+    # chooses random variable when switching datasets
     selected_val <- ifelse(!(input$dropdown %in% num_vars), 
                            sample(num_vars, 1),
                            input$dropdown)
     
+    # makes sure no grouop is selected when changing datasets
     selected_group <- ifelse(!(input$group_by %in% char_vars), 
                              '<no group>',
                              input$group_by)
@@ -153,9 +183,7 @@ server <- function(input, output, session) {
                       choices = c('<no group>', char_vars),
                       selected = selected_group)
   
-  # print(input$dataset)
-  # print(input$group_by)
-  # 
+    # Executing the code below without this check will cause errors
     if (!can_plot()){
       return()
     }
@@ -170,12 +198,13 @@ server <- function(input, output, session) {
     
   # plot histogram
   output$id_histogram <- renderPlot({
-    print(input$group_by)
+    # Executing the code below without this check will cause errors
     if (!can_plot()){
       return()
     }
+    
+    # plot all as the same
     if(input$group_by == '<no group>'){
-      # plot all as the same
       filtered_data() %>%
         ggplot(aes(x = !!sym(input$dropdown))) +
           geom_histogram(bins=input$bins, fill='orange', color='black',
@@ -193,11 +222,23 @@ server <- function(input, output, session) {
   
   # create interactive table
   output$id_table <- DT::renderDataTable({
+    # Executing the code below without this check will cause errors
     if (!can_plot()){
       return()
     }
+    
     filtered_data()
   })
+  
+  # download data
+  output$download <- downloadHandler(
+    filename = function(){
+      paste(input$dataset,'_',input$dropdown,'.csv', sep='')
+    },
+    content = function(file){
+      write.csv(filtered_data(), file)
+    }
+  )
     
 }
 
