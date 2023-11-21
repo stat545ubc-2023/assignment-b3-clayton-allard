@@ -119,7 +119,9 @@ server <- function(input, output, session) {
   
   can_plot <- reactive({    
     num_vars <- get_typeof_vars(dataset())
-    input$dropdown %in% num_vars
+    char_vars <- get_typeof_vars(dataset(), 'character')
+    input$dropdown %in% num_vars && 
+      input$group_by %in% c('', char_vars)
   })
   
   observe({
@@ -127,10 +129,15 @@ server <- function(input, output, session) {
     
     numeric_col <- as.numeric(data[[input$dropdown]])
     num_vars <- get_typeof_vars(data)
+    char_vars <- get_typeof_vars(dataset(), 'character')
     
     selected_val <- ifelse(!(input$dropdown %in% num_vars), 
                            sample(num_vars, 1),
                            input$dropdown)
+    
+    selected_group <- ifelse(!(input$group_by %in% char_vars), 
+                             '',
+                             input$group_by)
     
     # Update variable options once a dataset is chosen
     updateSelectInput(session, "dropdown",
@@ -139,6 +146,15 @@ server <- function(input, output, session) {
                       selected = selected_val
                       )
     
+    # Update group by options
+    updateSelectInput(session, "group_by",
+                      label = paste("Select variable:"),
+                      choices = c('', get_typeof_vars(data, 'character')),
+                      selected = selected_group)
+  
+  # print(input$dataset)
+  # print(input$group_by)
+  # 
     if (!can_plot()){
       return()
     }
@@ -149,15 +165,11 @@ server <- function(input, output, session) {
                       label = paste("Select a ", input$dropdown, " range:"),
                       min = min(numeric_col),
                       max = max(numeric_col))
-    
-    # Update group by options
-    updateSelectInput(session, "group_by",
-                      label = paste("Select variable:"),
-                      choices = c('', get_typeof_vars(data, 'character')))
   })
-  
+    
   # plot histogram
   output$id_histogram <- renderPlot({
+    print(input$group_by)
     if (!can_plot()){
       return()
     }
