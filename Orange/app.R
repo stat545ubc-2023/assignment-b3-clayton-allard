@@ -41,8 +41,8 @@ get_typeof_vars <- function(dataset, type='numeric'){
       is.character(col) || is.factor(col)})]
     if (length(chars) == 0)
       return(chars)
+    # Want no more than 10 values to not overload the histogram with groups
     return(chars[sapply(chars, function(col) {
-      # print(length(unique(dataset[[col]])))
       length(unique(dataset[[col]])) <= 10})]) 
   }
   return(character(0))
@@ -52,7 +52,7 @@ get_typeof_vars <- function(dataset, type='numeric'){
 data_names <- data(package = 'datasets')$results[, "Item"]
 data_names <- keep(data_names, has_numeric_variable)
 
-# so that we can initialize the dataframe
+# so that we can initialize the dataframe with random dataset and variable
 random_name <- sample(data_names, 1)
 random_dataset <- get(random_name)
 num_vars <-  get_typeof_vars(random_dataset)
@@ -90,10 +90,11 @@ ui <- fluidPage(
         # select number of bins for histogram
         sliderInput("bins", "Number of bins:", min = 1,max = 30,value = 10),
         
+        # NEW FEATURE 2: choose any character feature (<=10 values) to group by
         # group by
         selectInput("group_by", "Select variable to group by:", 
-                    choices=c('', char_vars),
-                    selected = '')),
+                    choices=c('<no group>', char_vars),
+                    selected = '<no group>')),
       mainPanel(
         # output a histogram and a table
         plotOutput("id_histogram"),
@@ -121,7 +122,7 @@ server <- function(input, output, session) {
     num_vars <- get_typeof_vars(dataset())
     char_vars <- get_typeof_vars(dataset(), 'character')
     input$dropdown %in% num_vars && 
-      input$group_by %in% c('', char_vars)
+      input$group_by %in% c('<no group>', char_vars)
   })
   
   observe({
@@ -136,7 +137,7 @@ server <- function(input, output, session) {
                            input$dropdown)
     
     selected_group <- ifelse(!(input$group_by %in% char_vars), 
-                             '',
+                             '<no group>',
                              input$group_by)
     
     # Update variable options once a dataset is chosen
@@ -148,8 +149,8 @@ server <- function(input, output, session) {
     
     # Update group by options
     updateSelectInput(session, "group_by",
-                      label = paste("Select variable:"),
-                      choices = c('', get_typeof_vars(data, 'character')),
+                      label = paste("Select variable to group by:"),
+                      choices = c('<no group>', char_vars),
                       selected = selected_group)
   
   # print(input$dataset)
@@ -173,7 +174,7 @@ server <- function(input, output, session) {
     if (!can_plot()){
       return()
     }
-    if(input$group_by == ''){
+    if(input$group_by == '<no group>'){
       # plot all as the same
       filtered_data() %>%
         ggplot(aes(x = !!sym(input$dropdown))) +
