@@ -126,7 +126,6 @@ server <- function(input, output, session) {
     selected_val <- ifelse(!(input$dropdown %in% num_vars), 
                            sample(num_vars, 1),
                            input$dropdown)
-    print(selected_val)
     
     # Update variable options once a dataset is chosen
     updateSelectInput(session, "dropdown",
@@ -134,13 +133,22 @@ server <- function(input, output, session) {
                       choices = num_vars,
                       selected = selected_val
                       )
+    
+    if (length(numeric_col) == 0){
+      print('got it')
+      return()
+    }
+    
+    print(input$dataset)
+    print(input$dropdown)
+    print(numeric_col)
 
     # Update the slider input after selecting dropdown
-    updateSliderInput(session, "id_slider",
-                      value = range(numeric_col),
-                      label = paste("Select a ", input$dropdown, " range:"),
-                      min = min(numeric_col),
-                      max = max(numeric_col))
+    # updateSliderInput(session, "id_slider",
+    #                   value = range(numeric_col),
+    #                   label = paste("Select a ", input$dropdown, " range:"),
+    #                   min = min(numeric_col),
+    #                   max = max(numeric_col))
     
     # Update group by options
     updateSelectInput(session, "group_by",
@@ -148,36 +156,30 @@ server <- function(input, output, session) {
                       choices = c('', get_typeof_vars(data, 'character')))
   })
   
-  tryCatch({
   # plot histogram
-  output$id_histogram <- renderPlot({
-    if(input$group_by == ''){
-      # plot all as the same
-      filtered_data() %>%  
-        ggplot(aes(x = !!sym(input$dropdown))) +
-          geom_histogram(bins=input$bins, fill='orange', color='black', 
-                         alpha=0.7)+
-          theme_classic(20)
-    } else {
-      # plot by group
-      filtered_data() %>%  
-        ggplot(aes(x = !!sym(input$dropdown), fill = !!sym(input$group_by))) +
-          geom_histogram(bins=input$bins, color='black', alpha=0.7)+
-          theme_classic(20) +
-          labs(fill = input$group_by)
-    }
-  })
+  # output$id_histogram <- renderPlot({
+  #   if(input$group_by == ''){
+  #     # plot all as the same
+  #     filtered_data() %>%
+  #       ggplot(aes(x = !!sym(input$dropdown))) +
+  #         geom_histogram(bins=input$bins, fill='orange', color='black',
+  #                        alpha=0.7)+
+  #         theme_classic(20)
+  #   } else {
+  #     # plot by group
+  #     filtered_data() %>%
+  #       ggplot(aes(x = !!sym(input$dropdown), fill = !!sym(input$group_by))) +
+  #         geom_histogram(bins=input$bins, color='black', alpha=0.7)+
+  #         theme_classic(20) +
+  #         labs(fill = input$group_by)
+  #   }
+  # })
   
   # create interactive table
   output$id_table <- DT::renderDataTable({
     dataset()
   })
-  }, error = function(e){
-    output$id_histogram <- renderText({
-      paste('Loading...')
-  })
     
-})
 }
 
 # Run the application 
