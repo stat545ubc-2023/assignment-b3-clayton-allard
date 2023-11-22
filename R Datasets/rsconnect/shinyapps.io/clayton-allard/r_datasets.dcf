@@ -1,0 +1,10 @@
+name: r_datasets
+title:
+username: clayton-allard
+account: clayton-allard
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 10597920
+bundleId: 7955308
+url: https://clayton-allard.shinyapps.io/r_datasets/
+version: 1
