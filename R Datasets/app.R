@@ -101,9 +101,9 @@ ui <- fluidPage(
         # FEATURE 2: allow user to select a range for the variable they chose.
         # select range of variable to visualize
         sliderInput("id_slider", paste("Select ", sample_num, "range:"),
-                    min = min(numeric_col),
-                    max = max(numeric_col),
-                    value = range(numeric_col)),
+                    min = min(numeric_col, na.rm=TRUE),
+                    max = max(numeric_col, na.rm=TRUE),
+                    value = range(numeric_col, na.rm=TRUE)),
         
         # FEATURE 3: allow user to select the number of bins.
         # select number of bins for histogram
@@ -190,10 +190,10 @@ server <- function(input, output, session) {
 
     # Update the slider input after selecting dropdown
     updateSliderInput(session, "id_slider",
-                      value = range(numeric_col),
+                      value = range(numeric_col, na.rm=TRUE),
                       label = paste("Select a ", input$dropdown, " range:"),
-                      min = min(numeric_col),
-                      max = max(numeric_col))
+                      min = min(numeric_col, na.rm=TRUE),
+                      max = max(numeric_col, na.rm=TRUE))
   })
     
   # plot histogram
