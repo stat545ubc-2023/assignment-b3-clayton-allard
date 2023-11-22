@@ -4,7 +4,7 @@ For assignment 4, I have chosen option C to improve the shiny app from assignmen
 
 This app gives the user the option to plot a histogram from (almost) any dataset in base R. There are 42 datasets to chose from. Within each dataset, the user can choose any numeric variable to plot as well as any character variable to group by (if any). Additionally, the user has the option to filter the data by value range. The app displays a histogram and a table of the data based on the user input. Lastly, there is an option to download the filtered data to use for analysis.
 
-Link to this app: 
+Link to this app: https://clayton-allard.shinyapps.io/r_datasets/
 
 The original version of this app uses only the *Orange* dataset. This is the reason why the name of the repository is `oranges` despite it not being about oranges. Don't want to cause any confusion with grading for assignment 3. The link for that app is below as well.
 
